@@ -88,7 +88,7 @@ class ScormXBlock(XBlock):
     )
     width = Integer(
         display_name=_("Display Width (px)"),
-        help=_('Width of iframe, if empty, the default 100%'),
+        help=_('Width of iframe, if empty, the default 100'),
         scope=Scope.settings
     )
     height = Integer(

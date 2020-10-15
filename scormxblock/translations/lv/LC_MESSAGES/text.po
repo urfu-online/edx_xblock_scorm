@@ -52,7 +52,7 @@ msgid "Display Width (px)"
 msgstr "Parādīšanas platums (px)"
 
 #: scormxblock/scormxblock.py:90
-msgid "Width of iframe, if empty, the default 100%"
+msgid "Width of iframe, if empty, the default 100"
 msgstr "iframe platums pēc noklusējuma ir 100%, ja tukšs"
 
 #: scormxblock/scormxblock.py:94
