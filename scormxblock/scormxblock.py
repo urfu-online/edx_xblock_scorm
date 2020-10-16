@@ -1,26 +1,25 @@
-import json
 import hashlib
-import re
-import os
+import json
 import logging
-import pkg_resources
+import os
+import re
 import shutil
 import xml.etree.ElementTree as ET
-
+import zipfile
 from functools import partial
+from io import BytesIO
+
+import pkg_resources
 from django.conf import settings
 from django.core.files import File
 from django.core.files.storage import default_storage
 from django.template import Context, Template
 from django.utils import timezone
-from webob import Response
 from openedx.core.djangoapps.site_configuration import helpers as configuration_helpers
-
+from webob import Response
 from xblock.core import XBlock
 from xblock.fields import Scope, String, Float, Boolean, Dict, DateTime, Integer
 from xblock.fragment import Fragment
-
-
 
 # Make '_' a no-op so we can scrape strings
 _ = lambda text: text
@@ -32,7 +31,6 @@ SCORM_URL = os.path.join(settings.MEDIA_URL, 'scorm')
 
 
 class ScormXBlock(XBlock):
-
     display_name = String(
         display_name=_("Display Name"),
         help=_("Display name for this module"),
@@ -165,16 +163,11 @@ class ScormXBlock(XBlock):
             if os.path.exists(path_to_file):
                 shutil.rmtree(path_to_file)
 
-            if hasattr(scorm_file, 'temporary_file_path'):
-                os.system('unzip {} -d {}'.format(scorm_file.temporary_file_path(), path_to_file))
-            else:
-                temporary_path = os.path.join(SCORM_ROOT, scorm_file.name)
-                temporary_zip = open(temporary_path, 'wb')
-                scorm_file.open()
-                temporary_zip.write(scorm_file.read())
-                temporary_zip.close()
-                os.system('unzip {} -d {}'.format(temporary_path, path_to_file))
-                os.remove(temporary_path)
+            with zipfile.ZipFile(BytesIO(scorm_file.read()), 'w', compression=zipfile.ZIP_DEFLATED) as zip_pointer:
+                zip_names = zip_pointer.namelist()
+                for zip_name in zip_names:
+                    default_storage.save(path_to_file, zip_pointer.read(zip_name))
+                zip_pointer.extractall(path_to_file, default_storage.path)
 
             self.set_fields_xblock(path_to_file)
 
@@ -211,7 +204,7 @@ class ScormXBlock(XBlock):
                 self.publish_grade()
                 context.update({"lesson_score": self.lesson_score})
         elif name in ['cmi.core.score.raw', 'cmi.score.raw'] and self.has_score:
-            self.lesson_score = int(data.get('value', 0))/100.0
+            self.lesson_score = int(data.get('value', 0)) / 100.0
             self.publish_grade()
             context.update({"lesson_score": self.lesson_score})
         else:
